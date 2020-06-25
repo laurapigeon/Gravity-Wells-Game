@@ -131,13 +131,7 @@ class Vector:
 
 
 class Body:
-    colour = (
-        (164, 164, 255), (164, 210, 255), (164, 255, 255), (164, 255, 210),
-        (164, 255, 164), (210, 255, 164), (255, 255, 164), (255, 210, 164),
-        (255, 164, 164), (255, 164, 210), (255, 164, 255), (210, 164, 255)
-    )
-
-    def __init__(self, m, P, v, update_type=0):
+    def __init__(self, m, P, v, update_type=0, player_controlled=False):
         self.m = m
         self.P0, self.P, self.P2 = None, Vector(*P), None
         self.v0, self.v, self.v2 = None, Vector(*v), None
@@ -154,26 +148,6 @@ class Body:
                 dP1, dv1 = (dP1 + dP2) * 0.5, (dv1 + dv2) * 0.5
             self.P2, self.v2 = self.P + dP1, self.v + dv1
 
-    #region Failed methods
-    def midpoint_update(self, dt):
-        if self.P0 is not None:
-            dPbdt, dvbdt = self.dbdt(self.P, self.v)
-            dP, dv = dPbdt * dt, dvbdt * dt
-            self.P2, self.v2 = self.P0 + 2 * dP, self.v0 + 2 * dv
-        else:
-            self.improved_euler_update(dt)
-
-    def improved_midpoint_update(self, dt):
-        if self.P0 is not None:
-            dPbdt1, dvbdt1 = self.dbdt(self.P, self.v)
-            dP1, dv1 = dPbdt1 * dt, dvbdt1 * dt
-            dPbdt2, dvbdt2 = self.dbdt(self.P + dP1, self.v + dv1)
-            dP2, dv2 = dPbdt2 * dt, dvbdt2 * dt
-            self.P2, self.v2 = self.P0 + dP1 + dP2, self.v0 + dv1 + dv2
-        else:
-            self.improved_euler_update(dt)
-    #endregion
-
     def dbdt(self, P, v):
         dPbdt = v
         dvbdt = self.Σa(P)
@@ -182,7 +156,7 @@ class Body:
     def Σa(self, P):
         a = Vector(0, 0)
         for body in bodies:
-            if self.P != body.P and self.update_type == body.update_type:
+            if self.P != body.P:
                 a += (body.P - self.P).normalize() * G * body.m * self.P.distance_to(body.P) ** -2
         return a
 
@@ -191,10 +165,8 @@ class Body:
         self.v0, self.v, self.v2 = self.v, self.v2, None
 
     def draw(self):
-        #colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        #colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
-        colour = self.colour[self.update_type % len(self.colour)]
-        pygame.draw.circle(screen, colour, round(self.P), 5)
+        colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
+        pygame.draw.circle(screen, colour, round(self.P), 2)
 
 
 pygame.init()
@@ -212,9 +184,8 @@ v1 = math.sqrt((G * m2) * (2 / s1 - 1 / s2))
 v2 = math.sqrt((G * m1) * (2 / s1 - 1 / s2))
 
 bodies = list()
-for i in range(20):
-    bodies.append(Body(m1, P1, (0, 0), i + 1))
-    bodies.append(Body(m2, P2, (v2, 0), i + 1))
+bodies.append(Body(m1, P1, (0, 0), 1))
+bodies.append(Body(m2, P2, (v2, 0), 5))
 
 done = False
 frame = 1
@@ -233,7 +204,7 @@ while not done:
     for body in bodies:
         body.step()
 
-    screen.fill((0, 0, 0))
+    #screen.fill((0, 0, 0))
     for body in bodies:
         body.draw()
     pygame.display.flip()
