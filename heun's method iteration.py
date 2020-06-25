@@ -187,10 +187,12 @@ class Body:
         return a
 
     def step(self):
-        self.P0, self.P, self.P2 = self.P, self.P2, None
-        self.v0, self.v, self.v2 = self.v, self.v2, None
+        if self.update_type:
+            self.P0, self.P, self.P2 = self.P, self.P2, None
+            self.v0, self.v, self.v2 = self.v, self.v2, None
 
     def draw(self):
+        #colour = (255, 255, 255)
         #colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
         #colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
         colour = self.colour[self.update_type % len(self.colour)]
