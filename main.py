@@ -1,7 +1,8 @@
-import math
-import pygame
-import random
 import colorsys
+import math
+import random
+
+import pygame
 
 
 class Vector:
@@ -131,15 +132,20 @@ class Vector:
 
 
 class Body:
-    def __init__(self, m, r, P, v, update_type=0, player_controls=None):
+    def __init__(self, m, r, P, v=(0, 0), θ=0, ω=0, friction=(0, 0), update_type=0, player_controls=None, self_destruct=None):
         self.m = m
         self.r = r
-        self.P0, self.P, self.P2 = None, Vector(*P), None
-        self.v0, self.v, self.v2 = None, Vector(*v), None
+        self.P, self.P2 = Vector(*P), None
+        self.v, self.v2 = Vector(*v), None
+        self.θ = θ
+        self.ω = ω
+        self.friction = friction
         self.update_type = update_type
         self.player_controls = player_controls
-        self.θ = 0
-        self.ω = 0
+        self.self_destruct = self_destruct
+        self.colour = (255, 255, 255)
+        self.dark_colour = (164, 164, 164)
+        self.age = 0
 
     def update(self, dt):
         if self.update_type:
@@ -162,7 +168,7 @@ class Body:
         a = Vector(0, 0)
 
         # friction
-        a -= v * LINEAR_FRICTION
+        a -= v * self.friction[0]
 
         # gravity
         for body in bodies:
@@ -175,7 +181,7 @@ class Body:
                 a += (body.P - self.P).normalize() * G * body.m * (s ** 2 + (self.r + body.r) ** 4 * s ** -2) ** -1
 
         # thrust
-        if self.player_controls:
+        if self.player_controls is not None:
             if keys[self.player_controls[0]]:
                 a += THRUST_ACCELERATION * Vector(math.cos(θ), math.sin(θ))
 
@@ -185,10 +191,10 @@ class Body:
         α = 0
 
         # friction
-        α -= ω * ANGULAR_FRICTION
+        α -= ω * self.friction[1]
 
         # turning
-        if self.player_controls:
+        if self.player_controls is not None:
             if keys[self.player_controls[1]]:
                 α -= TURNING_ACCELERATION
             if keys[self.player_controls[2]]:
@@ -198,17 +204,24 @@ class Body:
 
     def step(self):
         if self.update_type:
-            self.P0, self.P, self.P2 = self.P, self.P2, None
-            self.v0, self.v, self.v2 = self.v, self.v2, None
-            self.θ0, self.θ, self.θ2 = self.θ, self.θ2, None
-            self.ω0, self.ω, self.ω2 = self.ω, self.ω2, None
+
+            self.age += 1
+
+            self.P, self.P2 = self.P2, None
+            self.v, self.v2 = self.v2, None
+            self.θ, self.θ2 = self.θ2, None
+            self.ω, self.ω2 = self.ω2, None
+
+            if self.self_destruct is not None:
+                if self.self_destruct["t"] is not None and self.age >= self.self_destruct["t"]:
+                    bodies.remove(self)
+                if self.self_destruct["v"] is not None and self.v.norm() <= self.self_destruct["v"]:
+                    bodies.remove(self)
 
     def draw(self):
-        colour = (255, 255, 255)
-        dark_colour = (164, 164, 164)
-        pygame.draw.circle(screen, colour, round(self.P), self.r)
-        pygame.draw.circle(screen, dark_colour, round(self.P), self.r - 2)
-        pygame.draw.circle(screen, colour, round(self.P + self.r * Vector(math.cos(self.θ), math.sin(self.θ))), round(self.r / 4))
+        pygame.draw.circle(screen, self.colour, round(self.P), self.r)
+        pygame.draw.circle(screen, self.dark_colour, round(self.P), self.r - 2)
+        pygame.draw.circle(screen, self.colour, round(self.P + self.r * Vector(math.cos(self.θ), math.sin(self.θ))), round(self.r / 4))
 
 
 pygame.init()
@@ -216,15 +229,17 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
 
 G = 30000
-LINEAR_FRICTION = 1
 THRUST_ACCELERATION = 250
-ANGULAR_FRICTION = 2
 TURNING_ACCELERATION = 20
+BULLET_SPEED = 100
 
 bodies = list()
-bodies.append(Body(50, 20, (400, 400), (0, 0)))
-bodies.append(Body(10, 20, (300, 300), (0, 0), 100, (pygame.K_e, pygame.K_s, pygame.K_f)))
-#bodies.append(Body(10, (400, 300), (0, 0), 100, (pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT)))
+bodies.append(Body(40, 20, (300, 400), (0, 0)))
+bodies.append(Body(40, 20, (500, 400), (0, 0)))
+bodies.append(Body(40, 20, (400, 300), (0, 0)))
+bodies.append(Body(40, 20, (400, 500), (0, 0)))
+bodies.append(Body(10, 20, (300, 200), (0, 0), 0, 0, (1, 2), 20, (pygame.K_e, pygame.K_s, pygame.K_f, pygame.K_SPACE)))
+bodies.append(Body(10, 20, (500, 600), (0, 0), math.pi, 0, (1, 2), 20, (pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_LCTRL)))
 
 done = False
 frame = 1
@@ -237,6 +252,15 @@ while not done:
 
         if event.type == pygame.VIDEORESIZE:
             screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+
+        if event.type == pygame.KEYDOWN:
+            for body in bodies:
+                if body.player_controls is not None:
+                    if event.key == body.player_controls[3]:
+                        facing = Vector(math.cos(body.θ), math.sin(body.θ))
+                        P = body.P + body.r * facing
+                        v = (body.v.norm() + BULLET_SPEED) * facing
+                        bodies.append(Body(1, 10, P, v, 0, 0, (0.2, 0), 1, self_destruct={"t": 300, "v": 50}))
 
     for body in bodies:
         body.update(1 / 120)
