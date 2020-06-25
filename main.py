@@ -131,67 +131,106 @@ class Vector:
 
 
 class Body:
-    def __init__(self, m, P, v, update_type=0, player_controlled=False):
+    def __init__(self, m, r, P, v, update_type=0, player_controls=None):
         self.m = m
+        self.r = r
         self.P0, self.P, self.P2 = None, Vector(*P), None
         self.v0, self.v, self.v2 = None, Vector(*v), None
-
         self.update_type = update_type
+        self.player_controls = player_controls
+        self.θ = 0
+        self.ω = 0
 
     def update(self, dt):
         if self.update_type:
-            dPbdt1, dvbdt1 = self.dbdt(self.P, self.v)
-            dP1, dv1 = dPbdt1 * dt, dvbdt1 * dt
+            dPbdt1, dvbdt1, dθbdt1, dωbdt1 = self.dbdt(self.P, self.v, self.θ, self.ω)
+            dP1, dv1, dθ1, dω1 = dPbdt1 * dt, dvbdt1 * dt, dθbdt1 * dt, dωbdt1 * dt
             for i in range(self.update_type - 1):
-                dPbdt2, dvbdt2 = self.dbdt(self.P + dP1, self.v + dv1)
-                dP2, dv2 = dPbdt2 * dt, dvbdt2 * dt
-                dP1, dv1 = (dP1 + dP2) * 0.5, (dv1 + dv2) * 0.5
-            self.P2, self.v2 = self.P + dP1, self.v + dv1
+                dPbdt2, dvbdt2, dθbdt2, dωbdt2 = self.dbdt(self.P + dP1, self.v + dv1, self.θ + dθ1, self.ω + dω1)
+                dP2, dv2, dθ2, dω2 = dPbdt2 * dt, dvbdt2 * dt, dθbdt2 * dt, dωbdt2 * dt
+                dP1, dv1, dθ1, dω1 = (dP1 + dP2) * 0.5, (dv1 + dv2) * 0.5, (dθ1 + dθ2) * 0.5, (dω1 + dω2) * 0.5
+            self.P2, self.v2, self.θ2, self.ω2 = self.P + dP1, self.v + dv1, self.θ + dθ1, self.ω + dω1
 
-    def dbdt(self, P, v):
+    def dbdt(self, P, v, θ, ω):
         dPbdt = v
-        dvbdt = self.Σa(P)
-        return dPbdt, dvbdt
+        dvbdt = self.Σa(P, v, θ, ω)
+        dθbdt = ω
+        dωbdt = self.Σα(P, v, θ, ω)
+        return dPbdt, dvbdt, dθbdt, dωbdt
 
-    def Σa(self, P):
+    def Σa(self, P, v, θ, ω):
         a = Vector(0, 0)
+
+        # friction
+        a -= v * LINEAR_FRICTION
+
+        # gravity
         for body in bodies:
             if self.P != body.P:
-                a += (body.P - self.P).normalize() * G * body.m * self.P.distance_to(body.P) ** -2
+                s = self.P.distance_to(body.P)
+                # gravacc
+                #a += (body.P - self.P).normalize() * G * body.m * s ** -2
+
+                # scaled gravacc equation to account for overlap of objects
+                a += (body.P - self.P).normalize() * G * body.m * (s ** 2 + (self.r + body.r) ** 4 * s ** -2) ** -1
+
+        # thrust
+        if self.player_controls:
+            if keys[self.player_controls[0]]:
+                a += THRUST_ACCELERATION * Vector(math.cos(θ), math.sin(θ))
+
         return a
 
+    def Σα(self, P, v, θ, ω):
+        α = 0
+
+        # friction
+        α -= ω * ANGULAR_FRICTION
+
+        # turning
+        if self.player_controls:
+            if keys[self.player_controls[1]]:
+                α -= TURNING_ACCELERATION
+            if keys[self.player_controls[2]]:
+                α += TURNING_ACCELERATION
+
+        return α
+
     def step(self):
-        self.P0, self.P, self.P2 = self.P, self.P2, None
-        self.v0, self.v, self.v2 = self.v, self.v2, None
+        if self.update_type:
+            self.P0, self.P, self.P2 = self.P, self.P2, None
+            self.v0, self.v, self.v2 = self.v, self.v2, None
+            self.θ0, self.θ, self.θ2 = self.θ, self.θ2, None
+            self.ω0, self.ω, self.ω2 = self.ω, self.ω2, None
 
     def draw(self):
-        colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
-        pygame.draw.circle(screen, colour, round(self.P), 2)
+        colour = (255, 255, 255)
+        dark_colour = (164, 164, 164)
+        pygame.draw.circle(screen, colour, round(self.P), self.r)
+        pygame.draw.circle(screen, dark_colour, round(self.P), self.r - 2)
+        pygame.draw.circle(screen, colour, round(self.P + self.r * Vector(math.cos(self.θ), math.sin(self.θ))), round(self.r / 4))
 
 
 pygame.init()
 clock = pygame.time.Clock()
-screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
+screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
 
 G = 30000
-s1 = 15
-s2 = 120
-P1 = (300, 360)
-P2 = (300, 360 - s1)
-m1 = 100
-m2 = 0.01
-v1 = math.sqrt((G * m2) * (2 / s1 - 1 / s2))
-v2 = math.sqrt((G * m1) * (2 / s1 - 1 / s2))
+LINEAR_FRICTION = 1
+THRUST_ACCELERATION = 250
+ANGULAR_FRICTION = 2
+TURNING_ACCELERATION = 20
 
 bodies = list()
-bodies.append(Body(m1, P1, (0, 0), 1))
-bodies.append(Body(m2, P2, (v2, 0), 5))
+bodies.append(Body(50, 20, (400, 400), (0, 0)))
+bodies.append(Body(10, 20, (300, 300), (0, 0), 100, (pygame.K_e, pygame.K_s, pygame.K_f)))
+#bodies.append(Body(10, (400, 300), (0, 0), 100, (pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT)))
 
 done = False
 frame = 1
 while not done:
     events = pygame.event.get()
-    presses = pygame.key.get_pressed()
+    keys = pygame.key.get_pressed()
     for event in events:
         if event.type == pygame.QUIT:
             done = True
@@ -204,7 +243,7 @@ while not done:
     for body in bodies:
         body.step()
 
-    #screen.fill((0, 0, 0))
+    screen.fill((0, 0, 0))
     for body in bodies:
         body.draw()
     pygame.display.flip()
