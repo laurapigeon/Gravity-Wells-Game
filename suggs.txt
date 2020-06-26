@@ -1,0 +1,19 @@
+bullet types
+    rocket
+    pellet
+    mine
+    drone
+    grenade
+    shank
+    shotgun
+    clone
+
+ship types
+    tank
+    scout
+    regular
+
+lives
+bullet cooldown
+win screen/draw screen
+dash
