@@ -18,12 +18,21 @@ bodies.append(Body((int(screen_dims[0] / 2 + 300), int(screen_dims[1] / 2)), θ=
 bodies.append(Body((int(screen_dims[0] / 2 - 300), int(screen_dims[1] / 2)), θ=None, m=160, r=40, body_type="star", threat_to=("player", "bullet"), damage=3))
 player1 = Body((200, 200), m=0, r=10, friction=(1 / 400, 5),
                body_type="player", update_type=10, threat_to=("bullet"), damage=1, threatened_by=("bullet", "star"), health=3, self_destruct={"s": True}, ammo=3,
-               player_controls=((pygame.K_e, 200), (pygame.K_s, -30), (pygame.K_d, -50), (pygame.K_f, 30), (pygame.K_SPACE, 300), pygame.K_t))
+               player_controls=((pygame.K_w, 200), (pygame.K_a, -30), (pygame.K_s, -50), (pygame.K_d, 30), (pygame.K_LSHIFT, 300), pygame.K_r))
 player2 = Body((screen_dims[0] - 200, screen_dims[1] - 200), m=0, r=10, friction=(1 / 400, 5),
                body_type="player", update_type=10, threat_to=("bullet"), damage=1, threatened_by=("bullet", "star"), health=3, self_destruct={"s": True}, ammo=3,
                player_controls=((pygame.K_UP, 200), (pygame.K_LEFT, -30), (pygame.K_DOWN, 50), (pygame.K_RIGHT, 30), (pygame.K_RCTRL, 300), pygame.K_RETURN))
+player3 = Body((screen_dims[0] - 200, 200), m=0, r=10, friction=(1 / 400, 5),
+               body_type="player", update_type=10, threat_to=("bullet"), damage=1, threatened_by=("bullet", "star"), health=3, self_destruct={"s": True}, ammo=3,
+               player_controls=((pygame.K_i, 200), (pygame.K_j, -30), (pygame.K_k, 50), (pygame.K_l, 30), (pygame.K_n, 300), pygame.K_p))
+player4 = Body((200, screen_dims[1] - 200), m=0, r=10, friction=(1 / 400, 5),
+               body_type="player", update_type=10, threat_to=("bullet"), damage=1, threatened_by=("bullet", "star"), health=3, self_destruct={"s": True}, ammo=3,
+               player_controls=((pygame.K_t, 200), (pygame.K_f, -30), (pygame.K_g, 50), (pygame.K_h, 30), (pygame.K_c, 300), pygame.K_u))
 players.append(player1)
 players.append(player2)
+players.append(player3)
+players.append(player4)
+
 
 done = False
 frame = 1
