@@ -7,7 +7,7 @@ from Vector_class import Vector
 
 
 class Body:
-    def __init__(self, P, θ=0, v=(0, 0), ω=0, m=0, r=5, friction=(0, 0), body_type=None, update_type=0, threat_reqs=None, threat_to=None, damage=1, threatened_by=None, health=1, self_destruct=None, ammo=0, player_controls=None):
+    def __init__(self, P, θ=0, v=(0, 0), ω=0, m=0, r=5, friction=(0, 0), body_type=None, shot_type=None, update_type=0, threat_reqs=None, threat_to=None, damage=1, threatened_by=None, health=1, self_destruct=None, player_controls=None):
         self.defP, self.defP2 = self.P, self.P2 = Vector(*P), None
         self.defv, self.defv2 = self.v, self.v2 = Vector(*v), None
         self.defθ, self.defθ2 = self.θ, self.θ2 = θ, None
@@ -33,22 +33,39 @@ class Body:
         self.colour = (255, 255, 255)
         self.dark_colour = (164, 164, 164)
 
-        self.ammo = ammo
+        self.shot_type = shot_type
+
         self.bullets = list()
-        if self.ammo:
+        if self.shot_type is not None:
             facing = Vector(math.cos(self.θ), math.sin(self.θ))
             P = self.P + self.r * facing
-            v = 0.5 * self.v + self.player_controls[4][1] * facing
-            for i in range(self.ammo):
-                self.bullets.append(Body(P, θ=None, v=v, m=1, r=5, friction=(0, 0), body_type="bullet", update_type=1,
-                                         threat_reqs={"t": 10}, threat_to=("player", "bullet"), damage=1,
-                                         threatened_by=("player", "bullet", "star"), health=1, self_destruct={"t": 300, "v": 20, "s": True}))
+            v = self.v + self.player_controls[4][1] * facing
+            if self.shot_type == "gun":
+                for i in range(4):
+                    self.bullets.append(Body(P, θ=None, v=Vector(0.6, 0), m=1, r=5, friction=(0, 0), body_type="pellet", update_type=1,
+                                             threat_reqs={"t": 10}, threat_to=("player", "pellet", "shrapnel"), damage=2,
+                                             threatened_by=("player", "pellet", "shrapnel", "bullet", "star"), health=2, self_destruct={"t": 300, "v": 20, "s": True}))
+            elif self.shot_type == "shotgun":
+                for i in range(6):
+                    self.bullets.append(Body(P, θ=None, v=Vector(1.2, 0), m=0, r=3, friction=(1 / 400, 0), body_type="shrapnel", update_type=1,
+                                             threat_reqs={"t": 5}, threat_to=("player", "pellet"), damage=1,
+                                             threatened_by=("player", "pellet", "bullet", "star"), health=1, self_destruct={"t": 100, "v": 20, "s": True}))
+            elif self.shot_type == "sniper":
+                for i in range(1):
+                    self.bullets.append(Body(P, θ=None, v=Vector(1.5, 0), m=10, r=4, friction=(0, 0), body_type="bullet", update_type=1,
+                                             threat_reqs={"t": 10}, threat_to=("player", "pellet", "shrapnel", "bullet"), damage=3,
+                                             threatened_by=("player", "bullet", "star"), health=2, self_destruct={"t": 300, "v": 20, "s": True}))
 
     def default(self, parent=None):
-        if self.body_type == "bullet":
+        if self.body_type in ("pellet", "bullet"):
             facing = Vector(math.cos(parent.θ), math.sin(parent.θ))
             self.P, self.P2 = parent.P + parent.r * facing, None
-            self.v, self.v2 = 0.5 * parent.v + parent.player_controls[4][1] * facing, None
+            self.v, self.v2 = parent.v + self.defv.norm() * parent.player_controls[4][1] * facing, None
+        elif self.body_type == "shrapnel":
+            θ = parent.θ + random.uniform(-math.pi / 8, math.pi / 8)
+            facing = Vector(math.cos(θ), math.sin(θ))
+            self.P, self.P2 = parent.P + parent.r * facing, None
+            self.v, self.v2 = random.uniform(0.5, 1.5) * (parent.v + self.defv.norm() * parent.player_controls[4][1] * facing), None
         else:
             self.P = self.defP
             self.P2 = self.defP2
@@ -176,11 +193,17 @@ class Body:
                     bodies.remove(body)
 
     def fire(self, bodies):
-        for bullet in self.bullets:
-            if bullet not in bodies:
-                bullet.default(self)
-                bodies.append(bullet)
-                break
+        if self.shot_type in ("gun", "sniper"):
+            for bullet in self.bullets:
+                if bullet not in bodies:
+                    bullet.default(self)
+                    bodies.append(bullet)
+                    break
+        elif self.shot_type == "shotgun":
+            for bullet in self.bullets:
+                if bullet not in bodies:
+                    bullet.default(self)
+                    bodies.append(bullet)
 
     def draw(self, screen):
         pygame.draw.circle(screen, self.colour, round(self.P), self.r)
