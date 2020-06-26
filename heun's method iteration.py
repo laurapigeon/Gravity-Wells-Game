@@ -196,7 +196,7 @@ class Body:
         #colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
         #colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
         colour = self.colour[self.update_type % len(self.colour)]
-        pygame.draw.circle(screen, colour, round(self.P), 5)
+        pygame.draw.circle(screen, colour, round(self.P), 2)
 
 
 pygame.init()
@@ -204,8 +204,8 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
 
 G = 30000
-s1 = 15
-s2 = 120
+s1 = 50
+s2 = 60
 P1 = (300, 360)
 P2 = (300, 360 - s1)
 m1 = 100
@@ -235,7 +235,7 @@ while not done:
     for body in bodies:
         body.step()
 
-    screen.fill((0, 0, 0))
+    #screen.fill((0, 0, 0))
     for body in bodies:
         body.draw()
     pygame.display.flip()
