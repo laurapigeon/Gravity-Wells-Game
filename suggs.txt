@@ -7,13 +7,17 @@ bullet types
     shank
     shotgun
     clone
+    electrostatic
+    boid
+    magnetic
 
 ship types
     tank
     scout
     regular
+    dash-ship
+    war-ship
 
 lives
 bullet cooldown
 win screen/draw screen
-dash
