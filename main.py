@@ -24,6 +24,7 @@ in_play = False
 shot_types = ("gun", "shotgun", "sniper", "blaster", "melee", "flamethrower", "gravgun")
 winner = None
 wins = [0, 0, 0, 0]
+player_names = ["player 1", "gwyn", "runa", "laura"]
 
 bodies.append(Body((int(screen_dims[0] / 2 + 300), int(screen_dims[1] / 2)), θ=None, m=160, r=40, body_type="star", threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "flame", "mass"), damage=999))
 bodies.append(Body((int(screen_dims[0] / 2 - 300), int(screen_dims[1] / 2)), θ=None, m=160, r=40, body_type="star", threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "flame", "mass"), damage=999))
@@ -77,6 +78,9 @@ while not done:
                         player.default()
                     player.stocks = 2
                     player.health = 5
+                for body in bodies:
+                    if body.body_type in ("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass"):
+                        bodies.remove(body)
             for player in players:
                 if player not in bodies and player not in active_players and not in_play:
                     if event.key in (player.player_controls[1][0], player.player_controls[3][0]):
@@ -115,11 +119,11 @@ while not done:
         for i, player in enumerate(players):
             if player not in bodies and player not in active_players:
                 player.draw(screen, bodies)
-                screen.blit(FONT.render("player {}".format(players.index(player) + 1), True, player.colour), player.defP + Vector(-7, -50))
+                screen.blit(FONT.render(player_names[players.index(player)], True, player.colour), player.defP + Vector(-7, -50))
                 screen.blit(FONT.render(player.shot_type, True, player.colour), player.defP + Vector(-7, 18))
                 screen.blit(FONT.render("{} wins".format(wins[i]), True, player.colour), player.defP + Vector(-7, 40))
         if winner is not None:
-            surface = FONT.render("player {} wins as {}!".format(winner[0] + 1, winner[2]), True, winner[1])
+            surface = FONT.render("{} wins as {}!".format(player_names[winner[0]], winner[2]), True, winner[1])
             rect = (int(screen_dims[0] / 2 - surface.get_rect().w / 2), int(screen_dims[1] / 2 - surface.get_rect().h / 2))
             screen.blit(surface, rect)
         if len(active_players) >= 2:

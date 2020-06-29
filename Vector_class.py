@@ -15,14 +15,14 @@ class Vector:
 
     def argument(self):
         """ Returns the argument of the vector, the angle clockwise from +y."""
-        arg = math.acos(Vector(1, 0) * self / self.norm())
+        arg = math.atan2(self[1], self[0])
         return arg
 
     def distance_to(self, other):
         return (other - self).norm()
 
     def angle_to(self, other):
-        ang = math.acos((self * other) / (self.norm() * other.norm()))
+        ang = other.argument() - self.argument()
         return ang
 
     def normalize(self):
@@ -124,3 +124,8 @@ class Vector:
 
     def __round__(self):
         return (round(self[0]), round(self[1]))
+
+
+if __name__ == "__main__":
+    while True:
+        print(eval(input()))

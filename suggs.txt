@@ -8,3 +8,6 @@ bullet types
     electrostatic
     boid
     magnetic
+    recoil gun
+
+collision momentum transfer
