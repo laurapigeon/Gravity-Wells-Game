@@ -26,7 +26,7 @@ class Body:
         self.body_type = body_type
         self.update_type = update_type
         self.threat_to = threat_to
-        self.damage = damage
+        self.defdamage = self.damage = damage
         self.threat_reqs = threat_reqs
         self.threatened_by = threatened_by
         self.defhealth = self.health = health
@@ -53,21 +53,21 @@ class Body:
                 self.shot_cooldown = 40
                 for i in range(5):
                     self.bullets.append(Body(P, θ=None, v=Vector(0.75, 0), m=1, r=5, friction=(1 / 2000, 0), body_type="pellet", update_type=1,
-                                             threat_reqs={"t": 10}, threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "mass", "flame"), damage=2,
+                                             threat_reqs={"t": 5}, threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "mass", "flame"), damage=2,
                                              threatened_by=("player", "pellet", "shrapnel", "bullet", "blast", "sword", "mass", "star"), health=3, self_destruct={"t": 300, "v": 20, "s": True},
                                              colour=self.colour, dark_colour=self.dark_colour))
             elif self.shot_type == "shotgun":
                 self.shot_cooldown = 120
                 for i in range(7):
                     self.bullets.append(Body(P, θ=None, v=Vector(1, 0), r=3, friction=(1 / 400, 0), body_type="shrapnel", update_type=1,
-                                             threat_reqs={"t": 5}, threat_to=("player", "pellet", "bullet", "blast", "flame", "mass"), damage=1,
-                                             threatened_by=("player", "pellet", "bullet", "blast", "sword", "mass", "star"), health=1, self_destruct={"t": 100, "v": 20, "s": True},
+                                             threat_reqs={"t": 5, "v": 20}, threat_to=("player", "pellet", "bullet", "blast", "flame", "mass"), damage=1,
+                                             threatened_by=("player", "pellet", "bullet", "blast", "sword", "mass", "star"), health=1, self_destruct={"t": 100, "s": True},
                                              colour=self.colour, dark_colour=self.dark_colour))
             elif self.shot_type == "sniper":
                 self.shot_cooldown = 120
                 for i in range(3):
                     self.bullets.append(Body(P, θ=None, v=Vector(1.5, 0), m=5, dm=30, r=4, friction=(0, 0), body_type="bullet", update_type=1,
-                                             threat_reqs={"t": 10}, threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "flame", "mass"), damage=3,
+                                             threat_reqs={"t": 5}, threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "flame", "mass"), damage=2,
                                              threatened_by=("player", "pellet", "shrapnel", "bullet", "blast", "sword", "mass", "star"), health=3, self_destruct={"t": 300, "v": 20, "s": True},
                                              colour=self.colour, dark_colour=self.dark_colour))
             elif self.shot_type == "blaster":
@@ -85,9 +85,9 @@ class Body:
                                              threatened_by=("player", "mass", "star"), health=1, self_destruct={"t": 10, "s": True},
                                              colour=self.colour, dark_colour=self.dark_colour))
             elif self.shot_type == "flamethrower":
-                self.shot_cooldown = 5
-                for i in range(8):
-                    self.bullets.append(Body(P, θ=None, v=Vector(1.5, 0), m=1, q=1, r=2, friction=(1 / 80, 0), body_type="flame", update_type=1,
+                self.shot_cooldown = 4
+                for i in range(10):
+                    self.bullets.append(Body(P, θ=None, v=Vector(1.2, 0), m=1, q=1, r=2, friction=(1 / 120, 0), body_type="flame", update_type=1,
                                              threat_reqs={"t": 5, "v": 20}, threat_to=("player", "mass"), damage=1,
                                              threatened_by=("player", "pellet", "shrapnel", "bullet", "blast", "sword", "mass", "star"), health=1, self_destruct={"t": 150, "s": True},
                                              colour=self.colour, dark_colour=self.dark_colour))
@@ -96,7 +96,7 @@ class Body:
                 for i in range(4):
                     self.bullets.append(Body(P, θ=None, v=Vector(0.5, 0), r=8, friction=(0, 0), body_type="mass", update_type=1,
                                              threat_reqs={"t": 30}, threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "sword", "flame"), damage=2,
-                                             threatened_by=("player", "pellet", "shrapnel", "bullet", "blast", "sword", "flame", "star"), health=3, self_destruct={"s": True},
+                                             threatened_by=("player", "pellet", "shrapnel", "bullet", "blast", "sword", "flame", "star"), health=5, self_destruct={"s": True},
                                              colour=self.colour, dark_colour=self.dark_colour))
 
     def default(self, parent=None, factor=None):
@@ -108,7 +108,7 @@ class Body:
         if self.body_type in ("pellet", "bullet", "mass"):
             facing = Vector(math.cos(parent.θ), math.sin(parent.θ))
             self.P, self.P2 = parent.P + parent.r * facing, None
-            self.v, self.v2 = (0.7, 1)[self.body_type == "mass"] * parent.v + self.defv.norm() * parent.player_controls[4][1] * facing, None
+            self.v, self.v2 = (0.7, 1)[self.body_type == "mass"] * parent.v + self.defv.norm() * parent.player_controls[4][1] * facing + parent.ω * parent.r * facing.rotate(math.pi / 2), None
         elif self.body_type in ("shrapnel", "flame"):
             Δθ = (math.pi / 12, math.pi / 24)[self.body_type == "flame"]
             θ = random.uniform(-Δθ, Δθ)
@@ -116,45 +116,44 @@ class Body:
             self.P, self.P2 = parent.P + parent.r * facing, None
             Δv = (0.25, 0.1)[self.body_type == "flame"]
             v = random.uniform(1 - Δv, 1 + Δv)
-            if self.body_type == "flame" and parent.v.norm() != 0 and parent.v.angle_to(facing) < math.pi / 4:
-                self.v, self.v2 = v * (2 * parent.v + self.defv.norm() * parent.player_controls[4][1] * facing), None
+            if self.body_type == "flame" and parent.v.norm() != 0 and abs(parent.v.angle_to(facing)) < math.pi / 2:
+                self.v, self.v2 = v * (1.6 * parent.v + self.defv.norm() * parent.player_controls[4][1] * facing) + parent.ω * parent.r * facing.rotate(math.pi / 2), None
             else:
-                self.v, self.v2 = v * (parent.v + self.defv.norm() * parent.player_controls[4][1] * facing), None
+                self.v, self.v2 = v * (parent.v + self.defv.norm() * parent.player_controls[4][1] * facing) + parent.ω * parent.r * facing.rotate(math.pi / 2), None
         elif self.body_type in ("blast"):
             if factor == 0:
                 facing = Vector(math.cos(parent.θ), math.sin(parent.θ))
                 self.P, self.P2 = parent.P + parent.r * facing, None
-                self.v, self.v2 = parent.v + self.defv.norm() * parent.player_controls[4][1] * facing, None
+                self.v, self.v2 = parent.v + self.defv.norm() * parent.player_controls[4][1] * facing + parent.ω * parent.r * facing.rotate(math.pi / 2), None
             else:
                 Δθ, Δv = 0.05 * math.cos(2 * math.pi * (factor - 1) / 7), 0.05 * math.sin(2 * math.pi * (factor - 1) / 7) + 1
                 θ = parent.θ + Δθ
                 facing = Vector(math.cos(θ), math.sin(θ))
                 self.P, self.P2 = parent.P + parent.r * facing, None
-                self.v, self.v2 = parent.v + Δv * self.defv.norm() * parent.player_controls[4][1] * facing, None
+                self.v, self.v2 = parent.v + Δv * self.defv.norm() * parent.player_controls[4][1] * facing + parent.ω * parent.r * facing.rotate(math.pi / 2), None
         elif self.body_type in ("sword"):
             facing = Vector(math.cos(parent.θ), math.sin(parent.θ))
             self.P, self.P2 = parent.P + parent.r * facing, None
-            if parent.v.norm() != 0 and parent.v.angle_to(facing) < math.pi / 4:
-                self.v, self.v2 = 1.5 * parent.v + self.defv.norm() * parent.player_controls[4][1] * facing, None
+            if parent.v.norm() != 0 and abs(parent.v.angle_to(facing)) < math.pi / 4:
+                self.v, self.v2 = 1.5 * parent.v + self.defv.norm() * parent.player_controls[4][1] * facing + parent.ω * parent.r * facing.rotate(math.pi / 2), None
             else:
-                self.v, self.v2 = parent.v + self.defv.norm() * parent.player_controls[4][1] * facing, None
+                self.v, self.v2 = parent.v + self.defv.norm() * parent.player_controls[4][1] * facing + parent.ω * parent.r * facing.rotate(math.pi / 2), None
         else:
-            if factor != "no_P":
-                self.P = self.defP
-                self.P2 = self.defP2
-                self.v = self.defv
-                self.v2 = self.defv2
-        if factor != "no_P":
-            self.θ = self.defθ
-            self.θ2 = self.defθ2
-            self.ω = self.defω
-            self.ω2 = self.defω2
+            self.P = self.defP
+            self.P2 = self.defP2
+            self.v = self.defv
+            self.v2 = self.defv2
+        self.θ = self.defθ
+        self.θ2 = self.defθ2
+        self.ω = self.defω
+        self.ω2 = self.defω2
         self.m = self.defm
         self.q = self.defq
         self.dm = self.defdm
         self.dq = self.defdq
         self.r = self.defr
 
+        self.damage = self.defdamage
         self.health = self.defhealth
 
         self.age = 0
@@ -204,7 +203,7 @@ class Body:
         else:
             dmbdt = dm
         if self.body_type == "blast" and self.age in (20, 21):
-            dqbdt = 1
+            dqbdt = -1
         else:
             dqbdt = dq
         ddmbdt = 0
@@ -263,7 +262,7 @@ class Body:
 
         return α
 
-    def step(self, bodies, screen_dims):
+    def step(self, bodies, screen_dims, frame, damage_markers):
         if self.update_type:
 
             self.age += 1
@@ -277,6 +276,9 @@ class Body:
             self.q, self.q2 = self.q2, None
             self.dq, self.dq2 = self.dq2, None
 
+            if self.body_type == "bullet" and self.age == 45:
+                self.damage += 1
+
             if self.self_destruct is not None:
                 if "t" in self.self_destruct and self.age >= self.self_destruct["t"]:
                     bodies.remove(self)
@@ -289,20 +291,26 @@ class Body:
                     return
 
         for body in bodies:
-            if self != body and self.P.distance_to(body.P) <= self.r + body.r - 4 and body.threat_to is not None and self.threatened_by is not None:
-                self_dangerous = self.threat_reqs is None or (("t" not in self.threat_reqs or self.age >= self.threat_reqs["t"]) and ("v" not in self.threat_reqs or self.v.norm() >= self.threat_reqs["v"]))
-                body_dangerous = body.threat_reqs is None or (("t" not in body.threat_reqs or body.age >= body.threat_reqs["t"]) and ("v" not in body.threat_reqs or body.v.norm() >= body.threat_reqs["v"]))
-                if self_dangerous and body_dangerous:
-                    if self.body_type in body.threat_to and body.body_type in self.threatened_by:
-                        self.health -= body.damage
-                    if body.body_type in self.threat_to and self.body_type in body.threatened_by:
-                        body.health -= self.damage
+            self.test_collision(body, bodies, frame, damage_markers)
 
-                if self.health <= 0 and (body.health > 0 or body.body_type != "player"):
-                    bodies.remove(self)
-                if body.health <= 0 and (self.health > 0 or self.body_type != "player"):
-                    bodies.remove(body)
-                return
+    def test_collision(self, body, bodies, frame, damage_markers):
+        if self != body and self.P.distance_to(body.P) <= self.r + body.r - 4 and body.threat_to is not None and self.threatened_by is not None:
+            self_dangerous = self.threat_reqs is None or (("t" not in self.threat_reqs or self.age >= self.threat_reqs["t"]) and ("v" not in self.threat_reqs or self.v.norm() >= self.threat_reqs["v"]))
+            body_dangerous = body.threat_reqs is None or (("t" not in body.threat_reqs or body.age >= body.threat_reqs["t"]) and ("v" not in body.threat_reqs or body.v.norm() >= body.threat_reqs["v"]))
+            if self_dangerous and body_dangerous:
+                if self.body_type in body.threat_to and body.body_type in self.threatened_by:
+                    self.health -= body.damage
+                    if self.body_type == "player":
+                        damage_markers.append((body.damage, self.P - Vector(20, 20), body.colour, frame))
+                if body.body_type in self.threat_to and self.body_type in body.threatened_by:
+                    body.health -= self.damage
+                    if body.body_type == "player":
+                        damage_markers.append((self.damage, body.P - Vector(20, 20), self.colour, frame))
+
+            if self.health <= 0 and (body.health > 0 or body.body_type != "player") and self in bodies:
+                bodies.remove(self)
+            if body.health <= 0 and (self.health > 0 or self.body_type != "player") and body in bodies:
+                bodies.remove(body)
 
     def fire(self, bodies):
         if self.threat_reqs is None or self.age >= self.threat_reqs["t"]:
@@ -322,7 +330,7 @@ class Body:
     def draw(self, screen, bodies):
         self_dangerous = self.threat_reqs is None or (("t" not in self.threat_reqs or self.age >= self.threat_reqs["t"]) and ("v" not in self.threat_reqs or self.v.norm() >= self.threat_reqs["v"]))
         if not self_dangerous and self.age != 0:
-            colour = (164, 164, 164)
+            colour = self.dark_colour
             dark_colour = (64, 64, 64)
         else:
             colour = self.colour
@@ -331,10 +339,15 @@ class Body:
         has_bullets = False
         for bullet in self.bullets:
             has_bullets = has_bullets or bullet not in bodies
-        if self.body_type != "player" or (self.age - self.shot_age) < self.shot_cooldown or not has_bullets:
+        if self.body_type != "player" or (self.age - self.shot_age) < self.shot_cooldown or not has_bullets or not self_dangerous:
             pygame.draw.circle(screen, dark_colour, round(self.P), self.r - 2)
+        if self.body_type == "player":
+            if self.shot_type in ("melee", "flamethrower") and self.v.norm() != 0:
+                angle = (math.pi / 2, math.pi / 4)[self.shot_type == "melee"]
+                pygame.draw.circle(screen, dark_colour, round(self.P + self.r * self.v.normalize().rotate(angle)), round(self.r / 3))
+                pygame.draw.circle(screen, dark_colour, round(self.P + self.r * self.v.normalize().rotate(-angle)), round(self.r / 3))
         if self.θ is not None:
-            pygame.draw.circle(screen, colour, round(self.P + self.r * Vector(math.cos(self.θ), math.sin(self.θ))), round(self.r / 4))
+            pygame.draw.circle(screen, colour, round(self.P + self.r * Vector(math.cos(self.θ), math.sin(self.θ))), round(self.r / 3))
         if self.body_type == "player":
             for i in range(self.stocks + 1):
                 pygame.draw.circle(screen, colour, round(self.defP + i * Vector(20, 0) - Vector(0, 15)), 6)

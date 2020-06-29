@@ -33,7 +33,7 @@ class Vector:
 
     def rotate(self, *args):
         """ Rotate this vector. If passed a number, assumes this is a
-            2D vector and rotates by the passed value in degrees.  Otherwise,
+            2D vector and rotates by the passed value in radians.  Otherwise,
             assumes the passed value is a list acting as a matrix which rotates the vector.
         """
         if len(args) == 1 and isinstance(args[0], (int, float)):
@@ -48,11 +48,10 @@ class Vector:
             return self.matrix_mult(matrix)
 
     def _rotate2D(self, theta):
-        """ Rotate this vector by theta in degrees.
+        """ Rotate this vector by theta in radians.
 
             Returns a new vector.
         """
-        theta = math.radians(theta)
         # Just applying the 2D rotation matrix
         dc, ds = math.cos(theta), math.sin(theta)
         x, y = self.values
