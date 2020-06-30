@@ -280,7 +280,7 @@ class Body:
             self.q, self.q2 = self.q2, None
             self.dq, self.dq2 = self.dq2, None
 
-            if self.body_type == "bullet" and (self.age == 15 or self.age == 30 or self.age == 60):
+            if self.body_type == "bullet" and (self.age == 15 or self.age == 30 or self.age == 60 or self.age == 180):
                 self.damage += 1
 
             if self.body_type == "mass" and self.age == 120:
