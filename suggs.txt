@@ -9,5 +9,6 @@ bullet types
     boid
     magnetic
     recoil gun
+    barger
 
 collision momentum transfer

@@ -1,0 +1,47 @@
+space - start match (when 2 or more players are in the lobby)
+delete - cancel match
+
+Player 1:
+w - thrust
+s - reverse
+a, d - turn / choose weapon
+shift - fire / confirm and join lobby
+
+Player 2:
+t - thrust
+g - reverse
+f, h - turn / choose weapon
+c - fire / confirm and join lobby
+
+Player 3:
+i - thrust
+k - reverse
+j, l - turn / choose weapon
+n - fire / confirm and join lobby
+
+Player 4:
+up arrow - thrust
+down arrow - reverse
+left arrow, right arrow - turn / choose weapon
+right ctrl - fire / confirm and join lobby
+
+Gun:
+Fire a slow shot every 0.67 seconds which deals 2 damage. 5 shots allowed on screen at once.
+
+Shotgun:
+Fire a fast random spread of 7 small shots every 2 seconds which deal 1 damage. This spray slows to a stop quickly.
+
+Sniper:
+Fire a fast small shot every 2 seconds which deals up to 4 damage the further it has traveled. Will track players directly in front of it slightly and gains mass over time.
+
+Blaster:
+Fire a fast clump of bullets every 2 seconds which explode out after half a second, dealing 2 damage per hit. Is intangible until it explodes.
+
+Melee:
+Fire a very fast very short lived line of bullets every 2 seconds which deal 3 damage each. Has a longer range when firing forward with high momentum.
+
+Flamethrower:
+Fire a burst of 10 fast bullets every 2.5 seconds which fan out and become smaller then intangible when slowed down. Has a longer range when firing forward with high momentum.
+
+Gravgun:         
+Fire a large slow shot every 1.67 seconds which tracks players in front of it, gains a high mass over time, and deals 2 damage (+1 after 2 seconds).

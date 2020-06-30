@@ -1,5 +1,6 @@
 import math
 import copy
+import random
 import pygame
 
 from Body_class import Body
@@ -24,26 +25,32 @@ in_play = False
 shot_types = ("gun", "shotgun", "sniper", "blaster", "melee", "flamethrower", "gravgun")
 winner = None
 wins = [0, 0, 0, 0]
-player_names = ["player 1", "gwyn", "runa", "laura"]
+player_names = ["player 1", "gwyn", "player 3", "laura"]
+colours = [
+    ((164, 164, 255), (73, 73, 164)), ((164, 210, 255), (73, 119, 164)), ((164, 255, 255), (73, 164, 164)), ((164, 255, 210), (73, 164, 119)),
+    ((164, 255, 164), (73, 164, 73)), ((210, 255, 164), (119, 164, 73)), ((255, 255, 164), (164, 164, 73)), ((255, 210, 164), (164, 119, 73)),
+    ((255, 164, 164), (164, 73, 73)), ((255, 164, 210), (164, 73, 119)), ((255, 164, 255), (164, 73, 164)), ((210, 164, 255), (119, 73, 164))
+]
+random.shuffle(colours)
 
 bodies.append(Body((int(screen_dims[0] / 2 + 300), int(screen_dims[1] / 2)), θ=None, m=160, r=40, body_type="star", threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "flame", "mass"), damage=999))
 bodies.append(Body((int(screen_dims[0] / 2 - 300), int(screen_dims[1] / 2)), θ=None, m=160, r=40, body_type="star", threat_to=("player", "pellet", "shrapnel", "bullet", "blast", "flame", "mass"), damage=999))
 player1 = Body((200, 200), r=10, friction=(1 / 400, 5), body_type="player", shot_type="gun",
                update_type=1, threat_reqs={"t": 150}, threat_to=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass"), damage=5,
                threatened_by=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass", "star"), health=5, self_destruct={"s": True},
-               player_controls=((pygame.K_w, 250), (pygame.K_a, -30), (pygame.K_s, -100), (pygame.K_d, 30), (pygame.K_LSHIFT, 300)), colour=(164, 255, 164), dark_colour=(96, 164, 96))
+               player_controls=((pygame.K_w, 250), (pygame.K_a, -30), (pygame.K_s, -100), (pygame.K_d, 30), (pygame.K_LSHIFT, 1)), colour=colours[0][0], dark_colour=colours[0][1])
 player2 = Body((screen_dims[0] - 200, screen_dims[1] - 200), θ=math.pi, r=10, friction=(1 / 400, 5), body_type="player", shot_type="gun",
                update_type=1, threat_reqs={"t": 150}, threat_to=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass"), damage=5,
                threatened_by=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass", "star"), health=5, self_destruct={"s": True},
-               player_controls=((pygame.K_UP, 250), (pygame.K_LEFT, -30), (pygame.K_DOWN, -100), (pygame.K_RIGHT, 30), (pygame.K_RCTRL, 300)), colour=(164, 164, 255), dark_colour=(96, 96, 164))
+               player_controls=((pygame.K_UP, 250), (pygame.K_LEFT, -30), (pygame.K_DOWN, -100), (pygame.K_RIGHT, 30), (pygame.K_RCTRL, 1)), colour=colours[1][0], dark_colour=colours[1][1])
 player3 = Body((screen_dims[0] - 200, 200), θ=math.pi, r=10, friction=(1 / 400, 5), body_type="player", shot_type="gun",
                update_type=1, threat_reqs={"t": 150}, threat_to=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass"), damage=5,
                threatened_by=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass", "star"), health=5, self_destruct={"s": True},
-               player_controls=((pygame.K_i, 250), (pygame.K_j, -30), (pygame.K_k, -100), (pygame.K_l, 30), (pygame.K_n, 300)), colour=(164, 255, 255), dark_colour=(96, 164, 164))
+               player_controls=((pygame.K_i, 250), (pygame.K_j, -30), (pygame.K_k, -100), (pygame.K_l, 30), (pygame.K_n, 1)), colour=colours[2][0], dark_colour=colours[2][1])
 player4 = Body((200, screen_dims[1] - 200), r=10, friction=(1 / 400, 5), body_type="player", shot_type="gun",
                update_type=1, threat_reqs={"t": 150}, threat_to=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass"), damage=5,
                threatened_by=("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass", "star"), health=5, self_destruct={"s": True},
-               player_controls=((pygame.K_t, 250), (pygame.K_f, -30), (pygame.K_g, -100), (pygame.K_h, 30), (pygame.K_c, 300)), colour=(255, 164, 255), dark_colour=(164, 96, 164))
+               player_controls=((pygame.K_t, 250), (pygame.K_f, -30), (pygame.K_g, -100), (pygame.K_h, 30), (pygame.K_c, 1)), colour=colours[3][0], dark_colour=colours[3][1])
 
 players.append(player1)
 players.append(player2)
@@ -81,6 +88,13 @@ while not done:
                 for body in bodies:
                     if body.body_type in ("pellet", "shrapnel", "bullet", "blast", "sword", "flame", "mass"):
                         bodies.remove(body)
+            if event.key == pygame.K_DELETE:
+                in_play = False
+                for player in active_players:
+                    if player in bodies:
+                        bodies.remove(player)
+                winner = None
+                active_players = list()
             for player in players:
                 if player not in bodies and player not in active_players and not in_play:
                     if event.key in (player.player_controls[1][0], player.player_controls[3][0]):
@@ -118,10 +132,10 @@ while not done:
     if not in_play:
         for i, player in enumerate(players):
             if player not in bodies and player not in active_players:
-                player.draw(screen, bodies)
-                screen.blit(FONT.render(player_names[players.index(player)], True, player.colour), player.defP + Vector(-7, -50))
-                screen.blit(FONT.render(player.shot_type, True, player.colour), player.defP + Vector(-7, 18))
-                screen.blit(FONT.render("{} wins".format(wins[i]), True, player.colour), player.defP + Vector(-7, 40))
+                player.draw(screen, bodies, players)
+                screen.blit(FONT.render(player_names[players.index(player)], True, player.colour), player.defP + Vector(-37, -50) + (-1, 1)[players.index(player) in (1, 2)] * Vector(50, 0))
+                screen.blit(FONT.render(player.shot_type, True, player.colour), player.defP + Vector(-37, 18) + (-1, 1)[players.index(player) in (1, 2)] * Vector(50, 0))
+                screen.blit(FONT.render("{} wins".format(wins[i]), True, player.colour), player.defP + Vector(-37, 40) + (-1, 1)[players.index(player) in (1, 2)] * Vector(50, 0))
         if winner is not None:
             surface = FONT.render("{} wins as {}!".format(player_names[winner[0]], winner[2]), True, winner[1])
             rect = (int(screen_dims[0] / 2 - surface.get_rect().w / 2), int(screen_dims[1] / 2 - surface.get_rect().h / 2))
@@ -132,7 +146,7 @@ while not done:
             screen.blit(surface, rect)
 
     for body in bodies:
-        body.draw(screen, bodies)
+        body.draw(screen, bodies, players)
     for damage_marker in damage_markers:
         if frame - damage_marker[3] <= 20 * (damage_marker[0] % 6):
             surface = SMALL_FONT.render(str(damage_marker[0]), True, damage_marker[2])
