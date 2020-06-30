@@ -8,6 +8,19 @@ from Vector_class import Vector
 
 import Config as c
 
+import sys
+import os
+
+
+def resource_path(relative_path):
+    try:  # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 pygame.init()
 clock = pygame.time.Clock()
 screen_dims = (1920, 1080)
@@ -25,7 +38,7 @@ in_play = False
 shot_types = ("gun", "shotgun", "sniper", "blaster", "melee", "flamethrower", "gravgun")
 winner = None
 wins = [0, 0, 0, 0]
-player_names = ["player 1", "gwyn", "player 3", "laura"]
+player_names = ["player 1", "player 2", "player 3", "player 4"]
 colours = [
     ((164, 164, 255), (73, 73, 164)), ((164, 210, 255), (73, 119, 164)), ((164, 255, 255), (73, 164, 164)), ((164, 255, 210), (73, 164, 119)),
     ((164, 255, 164), (73, 164, 73)), ((210, 255, 164), (119, 164, 73)), ((255, 255, 164), (164, 164, 73)), ((255, 210, 164), (164, 119, 73)),
