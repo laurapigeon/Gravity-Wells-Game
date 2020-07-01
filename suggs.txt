@@ -12,3 +12,12 @@ bullet types
     barger
 
 collision momentum transfer
+colour picking
+name picking
+kill counter
+points meter
+slow motion
+
+parent body class with children for star, player, bullet, pellet, flame etc.
+inherit acceleration-returning functions from parent, but have additional functions per child
+store child-based acceleration functions with parent ones in a reference list to iterate a sum through

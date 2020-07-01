@@ -8,10 +8,10 @@ a, d - turn / choose weapon
 shift - fire / confirm and join lobby
 
 Player 2:
-t - thrust
-g - reverse
-f, h - turn / choose weapon
-c - fire / confirm and join lobby
+up arrow - thrust
+down arrow - reverse
+left arrow, right arrow - turn / choose weapon
+right ctrl - fire / confirm and join lobby
 
 Player 3:
 i - thrust
@@ -20,10 +20,10 @@ j, l - turn / choose weapon
 n - fire / confirm and join lobby
 
 Player 4:
-up arrow - thrust
-down arrow - reverse
-left arrow, right arrow - turn / choose weapon
-right ctrl - fire / confirm and join lobby
+t - thrust
+g - reverse
+f, h - turn / choose weapon
+c - fire / confirm and join lobby
 
 Gun:
 Fire a slow shot every 0.67 seconds which deals 2 damage. 5 shots allowed on screen at once.
