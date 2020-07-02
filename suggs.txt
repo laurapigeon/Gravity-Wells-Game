@@ -10,6 +10,7 @@ bullet types
     magnetic
     recoil gun
     barger
+    bol and chain
 
 collision momentum transfer
 colour picking
@@ -21,3 +22,29 @@ slow motion
 parent body class with children for star, player, bullet, pellet, flame etc.
 inherit acceleration-returning functions from parent, but have additional functions per child
 store child-based acceleration functions with parent ones in a reference list to iterate a sum through
+
+Body:
+update iterations, age
+position, velocity
+mass, dmass, charge, dcharge
+cohesion, alignment, separation
+friction, elasticity
+colours, radius
+
+init
+update, step, get collision
+get gravitation acceleration, get static acceleration, get magnetic acceleration
+get cohesion acceleration, get alignment acceleration, get separation acceleration
+get friction acceleration, get collision acceleration
+draw
+
+Player:
+angle, angular velocity
+controls, stocks
+shot_type, shot_class
+threat to, damage, requirements for threat, threatened by, health, requirements for SD
+
+init
+get thrust, get angular thrust
+fire, respawn
+draw angle, draw able to fire
