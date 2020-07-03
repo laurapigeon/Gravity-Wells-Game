@@ -33,11 +33,11 @@ class Vector:
         return argument
 
     def distance_to(self, other):
-        length = (other - self).norm()
+        length = (other - self).norm
         return length
 
     def angle_to(self, other):
-        angle = other.arg() - self.arg()
+        angle = other.arg - self.arg
         return angle
 
     def normalize(self):
