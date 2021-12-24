@@ -51,6 +51,17 @@ class Vector:
         x, y = dc * x - ds * y, ds * x + dc * y
         return Vector(x, y)
 
+    def reflect(self, normal):
+        normal = normal.normalize()
+        vector = self - 2 * self.dot(normal) * normal
+        return vector
+
+    def resolve_about(self, other):
+        other = other.normalize()
+        vpara = self.dot(other) * other
+        vperp = self - vpara
+        return vpara, vperp
+
     def inner(self, other):
         inner = sum(a * b for a, b in zip(self, other))
         return inner

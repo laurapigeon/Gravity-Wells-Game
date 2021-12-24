@@ -3,7 +3,7 @@
     "python.linting.pycodestyleEnabled": true,
     "python.linting.enabled": true,
     "python.linting.pycodestyleArgs": [
-        "--ignore=E221, E501, E265, E722, W391, W292, E241"
+        "--ignore=E221, E501, E265, E722, W391, W292, E241, E221"
     ],
     "python.pythonPath": "C:\\Users\\Laura\\AppData\\Local\\Programs\\Python\\Python38\\python.exe"
 }

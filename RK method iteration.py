@@ -46,7 +46,7 @@ class Vector:
             return self._rotate2D(*args)
         elif len(args) == 1:
             matrix = args[0]
-            if not all(len(row) == len(v) for row in matrix) or not len(matrix) == len(self):
+            if not all(len(row) == len(self) for row in matrix) or not len(matrix) == len(self):
                 raise ValueError("Rotation matrix must be square and same dimensions as vector")
             return self.matrix_mult(matrix)
 
@@ -99,7 +99,7 @@ class Vector:
         """ Called if 4*self for instance """
         return self.__mul__(other)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         if isinstance(other, (int, float)):
             divided = tuple(a / other for a in self)
             return Vector(*divided)
@@ -137,65 +137,61 @@ class Body:
         (255, 164, 164), (255, 164, 210), (255, 164, 255), (210, 164, 255)
     )
 
-    def __init__(self, m, P, v, update_type=0):
+    def __init__(self, m, v, P):
         self.m = m
-        self.P0, self.P, self.P2 = None, Vector(*P), None
-        self.v0, self.v, self.v2 = None, Vector(*v), None
+        self.v, self.v2 = Vector(*v), None
+        self.P, self.P2 = Vector(*P), None
 
-        self.update_type = update_type
+        # RKN vars
+        self.hk = [Vector(0, 0), Vector(0, 0), Vector(0, 0), Vector(0, 0)]
+        self.va = [Vector(0, 0), Vector(0, 0), Vector(0, 0), Vector(0, 0)]
+        self.Pa = [Vector(0, 0), Vector(0, 0), Vector(0, 0), Vector(0, 0)]
 
-    def update(self, dt):
-        if self.update_type:
-            dPbdt1, dvbdt1 = self.dbdt(self.P, self.v)
-            dP1, dv1 = dPbdt1 * dt, dvbdt1 * dt
-            for i in range(self.update_type - 1):
-                dPbdt2, dvbdt2 = self.dbdt(self.P + dP1, self.v + dv1)
-                dP2, dv2 = dPbdt2 * dt, dvbdt2 * dt
-                dP1, dv1 = (dP1 + dP2) * 0.5, (dv1 + dv2) * 0.5
-            self.P2, self.v2 = self.P + dP1, self.v + dv1
-
-    #region Failed methods
-    def midpoint_update(self, dt):
-        if self.P0 is not None:
-            dPbdt, dvbdt = self.dbdt(self.P, self.v)
-            dP, dv = dPbdt * dt, dvbdt * dt
-            self.P2, self.v2 = self.P0 + 2 * dP, self.v0 + 2 * dv
-        else:
-            self.improved_euler_update(dt)
-
-    def improved_midpoint_update(self, dt):
-        if self.P0 is not None:
-            dPbdt1, dvbdt1 = self.dbdt(self.P, self.v)
-            dP1, dv1 = dPbdt1 * dt, dvbdt1 * dt
-            dPbdt2, dvbdt2 = self.dbdt(self.P + dP1, self.v + dv1)
-            dP2, dv2 = dPbdt2 * dt, dvbdt2 * dt
-            self.P2, self.v2 = self.P0 + dP1 + dP2, self.v0 + dv1 + dv2
-        else:
-            self.improved_euler_update(dt)
-    #endregion
-
-    def dbdt(self, P, v):
-        dPbdt = v
-        dvbdt = self.Σa(P)
-        return dPbdt, dvbdt
-
-    def Σa(self, P):
-        a = Vector(0, 0)
+    @classmethod
+    def RKN_update_bodies(cls, bodies, h):
         for body in bodies:
-            if self.P != body.P and self.update_type == body.update_type:
-                a += (body.P - self.P).normalize() * G * body.m * self.P.distance_to(body.P) ** -2
+            body.va[0] = body.v
+            body.Pa[0] = body.P
+            other_bodies = bodies[:]
+            other_bodies.remove(body)
+            body.hk[0] = h * body.Σa(other_bodies, 0)
+        for body in bodies:
+            body.va[1] = body.va[0] + body.hk[0] / 3
+            body.Pa[1] = body.Pa[0] + h * (body.hk[0] / 3 + 4 * body.va[0] + 2 * body.va[1]) / 18
+            other_bodies = bodies[:]
+            other_bodies.remove(body)
+            body.hk[1] = h * body.Σa(other_bodies, 1)
+        for body in bodies:
+            body.va[2] = body.va[0] - body.hk[0] / 3 + body.hk[1]
+            body.Pa[2] = body.Pa[0] + h * (2 * body.hk[0] / 3 + 4 * body.va[0] + 2 * body.va[2]) / 9
+            other_bodies = bodies[:]
+            other_bodies.remove(body)
+            body.hk[2] = h * body.Σa(other_bodies, 2)
+        for body in bodies:
+            body.va[3] = body.va[0] + body.hk[0] - body.hk[1] + body.hk[2]
+            body.Pa[3] = body.Pa[0] + h * (body.hk[0] + 4 * body.va[0] + 2 * body.va[3]) / 6
+            other_bodies = bodies[:]
+            other_bodies.remove(body)
+            body.hk[3] = h * body.Σa(other_bodies, 3)
+            body.v2 = body.va[0] + (body.hk[0] + 3 * body.hk[1] + 3 * body.hk[2] + body.hk[3]) / 8
+            body.P2 = body.Pa[0] + (body.va[0] + 3 * body.va[1] + 3 * body.va[2] + body.va[3]) * h / 8
+
+    def Σa(self, other_bodies, index):
+        a = Vector(0, 0)
+        for other_body in other_bodies:
+            P1, P2 = self.Pa[index], other_body.Pa[index]
+            if P1 != P2:
+                a += (P2 - P1).normalize() * G * other_body.m * P1.distance_to(P2) ** -2
         return a
 
     def step(self):
-        if self.update_type:
-            self.P0, self.P, self.P2 = self.P, self.P2, None
-            self.v0, self.v, self.v2 = self.v, self.v2, None
+        self.P, self.P2 = self.P2, None
+        self.v, self.v2 = self.v2, None
 
     def draw(self):
         #colour = (255, 255, 255)
         #colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        #colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
-        colour = self.colour[self.update_type % len(self.colour)]
+        colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
         pygame.draw.circle(screen, colour, round(self.P), 2)
 
 
@@ -204,19 +200,21 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
 
 G = 30000
-r1 = 1280 / 16
-r2 = 1280 / 20
-P1 = Vector(1280 / 2 + r1, 720 / 2)
-P2 = Vector(1280 / 2 - r2, 720 / 2)
+r = 1280 / 16
+P1 = Vector(1280 / 2 + r, 720 / 2)
+P2 = Vector(1280 / 2, 720 / 2)
 m1 = 100
 m2 = 200
-v1 = math.sqrt(G * m2 * r1) / (r1 + r2)
-v2 = -math.sqrt(G * m1 * r2) / (r1 + r2)
+v1 = math.sqrt(G * m2 * r) / r
+momentum = m1 * v1
+v1 -= 0.5 * momentum / m1
+v2 = -0.5 * momentum / m2
 
 bodies = list()
-for i in range(20):
-    bodies.append(Body(m1, P1, (0, v1), i + 1))
-    bodies.append(Body(m2, P2, (0, v2), i + 1))
+bodies.append(Body(m1, (0, v1), P1))
+bodies.append(Body(m2, (0, v2), P2))
+#bodies.append(Body(m1, (0, 0), (10 + 1280 / 2, -10 + 720 / 2)))
+#bodies.append(Body(m2, (0, 0), (-10 + 1280 / 2, 10 + 720 / 2)))
 
 done = False
 frame = 1
@@ -230,14 +228,13 @@ while not done:
         if event.type == pygame.VIDEORESIZE:
             screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
 
-    for body in bodies:
-        body.update(1 / 120)
+    Body.RKN_update_bodies(bodies, 1 / 60)
     for body in bodies:
         body.step()
 
-    screen.fill((0, 0, 0))
+    #screen.fill((0, 0, 0))
     for body in bodies:
         body.draw()
     pygame.display.flip()
-    clock.tick(120)
+    #clock.tick(60)
     frame += 1

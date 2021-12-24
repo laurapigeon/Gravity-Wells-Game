@@ -1,20 +1,26 @@
 import math
 import copy
 import pygame
+from multiprocessing import Pool
 
+import Shot_class
+import Player_class
 from Vector_class import Vector
 
 import Config as c
 
 
 class Body(object):
-    update_iterations = 2
+    cmp = Vector(0, 0)
+    damage_markers = list()
 
     def __init__(
-        self, ipos=[Vector()], imass=[0], icharge=[0], iradius=[2],
+        self, ipos=[Vector(), Vector()], imass=[0], icharge=[0], iradius=[2],
         iseparation=[0], ialignment=[0], icohesion=[0], iview_radius=[0],
-        friction=0, elasticity=0, colour=((255, 255, 255), (170, 170, 170), (85, 85, 85))
+        friction=0, elasticity=1, colour=((255, 255, 255), (170, 170, 170), (85, 85, 85)),
+        health=None, damage=None
     ):
+        """self.pos is a list of all derivatives of an object's position up to the constant term etc"""
         self.prev_pos,         self.pos,         self.next_pos         = None, ipos,         None  # (x, dx,...)
         self.prev_mass,        self.mass,        self.next_mass        = None, imass,        None  # (m, dm,...)
         self.prev_charge,      self.charge,      self.next_charge      = None, icharge,      None  # (q, dq,...)
@@ -23,30 +29,55 @@ class Body(object):
         self.prev_alignment,   self.alignment,   self.next_alignment   = None, ialignment,   None  # (ali, dali,...)
         self.prev_separation,  self.separation,  self.next_separation  = None, iseparation,  None  # (sep, dsep,...)
         self.prev_view_radius, self.view_radius, self.next_view_radius = None, iview_radius, None  # (rad, drad,...)
-        self.friction                                                        = friction            # linear friction
-        self.elasticity                                                      = elasticity          # collision elasticity
-        self.colour                                                          = colour              # (light, middle, dark)
+        self.friction = friction  # linear friction
+        self.elasticity = elasticity  # collision elasticity
+        self.colour = colour  # (light, middle, dark)
+        self.health = health
+        self.damage = damage
+        """nonzero masses have extra collision acceleration from any masses they are touching"""
         self.colliding_with = list()  # list of objects currently being collided with
 
     @classmethod
-    def update_bodies(cls, screen, dt, bodies):
-        for i in range(cls.update_iterations):
+    def update_cmp(cls, bodies, fast=False):
+        cmp = Vector(0, 0)
+        if len(bodies) != 0:
+            cmm = 0
             for body in bodies:
-                other_bodies = copy.copy(bodies)
-                other_bodies.remove(body)
-                body.set_next(screen, dt, other_bodies)
-            for body in bodies:
-                if i == 0:
-                    body.step_next()
-                else:
-                    body.average_next()
-                body.draw_vector(screen, body.pos[1])
+                cmp += body.mass[0] * body.pos[0]
+                cmm += body.mass[0]
+            if cmm > 0:
+                cmp /= cmm
+        if fast:
+            Body.cmp = cmp
+        else:
+            Body.cmp = (7 * Body.cmp + cmp) / 8
+
+    @classmethod
+    def update_bodies(cls, screen, dt, bodies, presses=None):
+        """
+        the main function of the class to iterate through its members updating their attributes in realtime
+        """
+        for body in bodies:
+            body.update(screen, dt, bodies, presses)
+
+        for body in bodies:
+            body.step_next()
+
     """
     y -> dy -> y + dy = y2 -> dy2 -> (dy + dy2) / 2 = better dy -> y + dy = better y2 (VALID)
     y -> dy -> y + dy = y2 -> dy2 -> y2 + dy2 = y3 -> (y2 + y3) / 2 = better y2 (NOT VALID)
     (y3 - y) / 2 = better dy -> y + dy = better y2 = (y + y3) / 2
     """
+
+    def update(self, screen, dt, bodies, presses):
+        other_bodies = copy.copy(bodies)
+        other_bodies.remove(self)
+        self.set_next(screen, dt, other_bodies)
+
     def set_next(self, screen, dt, other_bodies):
+        """
+        calculates a body's attributes after a frame using its derivatives
+        """
         self.next_pos = list()
         for i in range(max(len(self.pos) - 1, 2)):
             if len(self.pos) > 2 or i == 0:
@@ -56,7 +87,8 @@ class Body(object):
             if i == 1:  # change in velocity
                 for acc_func in self.acc_funcs:
                     # self.draw_vector(screen, acc_func(self, other_bodies))
-                    dxi += acc_func(self, other_bodies) * dt
+                    a = acc_func(self, other_bodies)
+                    dxi += a * dt
             self.next_pos.append(self.pos[i] + dxi)
         if len(self.pos) > 2:
             self.next_pos.append(self.pos[-1])
@@ -98,6 +130,9 @@ class Body(object):
         self.next_separation.append(self.separation[-1])
 
     def step_next(self):
+        """
+        uses the calculated next attributes to shift to the next step
+        """
         self.prev_pos,        self.pos,        self.next_pos        = self.pos,        self.next_pos,        None
         self.prev_mass,       self.mass,       self.next_mass       = self.mass,       self.next_mass,       None
         self.prev_charge,     self.charge,     self.next_charge     = self.charge,     self.next_charge,     None
@@ -105,15 +140,6 @@ class Body(object):
         self.prev_cohesion,   self.cohesion,   self.next_cohesion   = self.cohesion,   self.next_cohesion,   None
         self.prev_alignment,  self.alignment,  self.next_alignment  = self.alignment,  self.next_alignment,  None
         self.prev_separation, self.separation, self.next_separation = self.separation, self.next_separation, None
-
-    def average_next(self):
-        self.prev_pos,        self.pos,        self.next_pos        = self.pos,        list((a + b) / 2 for a, b in zip(self.prev_pos, self.next_pos)),               None
-        self.prev_mass,       self.mass,       self.next_mass       = self.mass,       list((a + b) / 2 for a, b in zip(self.prev_mass, self.next_mass)),             None
-        self.prev_charge,     self.charge,     self.next_charge     = self.charge,     list((a + b) / 2 for a, b in zip(self.prev_charge, self.next_charge)),         None
-        self.prev_radius,     self.radius,     self.next_radius     = self.radius,     list((a + b) / 2 for a, b in zip(self.prev_radius, self.next_radius)),         None
-        self.prev_cohesion,   self.cohesion,   self.next_cohesion   = self.cohesion,   list((a + b) / 2 for a, b in zip(self.prev_cohesion, self.next_cohesion)),     None
-        self.prev_alignment,  self.alignment,  self.next_alignment  = self.alignment,  list((a + b) / 2 for a, b in zip(self.prev_alignment, self.next_alignment)),   None
-        self.prev_separation, self.separation, self.next_separation = self.separation, list((a + b) / 2 for a, b in zip(self.prev_separation, self.next_separation)), None
 
     def get_grav_acc(self, other_bodies):
         a = Vector(0, 0)
@@ -189,36 +215,71 @@ class Body(object):
 
     def get_col_acc(self, other_bodies):
         a = Vector(0, 0)
-        if self.mass[0] != 0:
-            for other in other_bodies:
-                if self.test_collision(other):
-                    a += self.elasticity * other.mass * other.pos[1] / c.DT / self.mass
+        for other in other_bodies:
+            if self.test_collision(other):
+                selfpara, selfperp = self.pos[1].resolve_about(self.pos[0] - other.pos[0])
+                otherpara, otherperp = other.pos[1].resolve_about(self.pos[0] - other.pos[0])
+                m1, m2 = self.mass[0], other.mass[0]
+                selfparanew = (m1 - m2) / (m1 + m2) * selfpara + 2 * m2 / (m1 + m2) * otherpara
+                vf = selfparanew * self.elasticity + selfperp
+
+                a += (vf - self.pos[1]) / c.DT
+
+                if self.health is not None and other.damage is not None:
+                    if isinstance(self, Player_class.Player) and isinstance(other, Player_class.Player):
+                        damage = round(other.damage * (self.pos[1] - other.pos[1]).norm / 1200)
+                        if other.pos[1].norm > self.pos[1].norm * 4:
+                            damage *= 2
+                    else:
+                        damage = other.damage
+                    self.health -= damage
+                    if isinstance(self, Player_class.Player):
+                        Body.damage_markers.append([damage, self.pos[0] - Vector(20, 20), other.colour[0], max(min(damage, 100), 30)])
+
         return a
 
     def test_collision(self, other):
-        if self.pos[0].distance_to(other.pos[0]) <= self.radius[0] + other.radius[0]:
-            if other not in self.colliding_with:
-                self.colliding_with.append(other)
-                return True
-        elif other in self.colliding_with:
-            self.colliding_with.remove(other)
+        distance = self.pos[0].distance_to(other.pos[0])
+        if distance > 0:
+            if distance <= self.radius[0] + other.radius[0]:
+                if other not in self.colliding_with:
+                    self.colliding_with.append(other)
+                    return True
+            elif other in self.colliding_with:
+                self.colliding_with.remove(other)
         return False
 
-    acc_funcs = (
+    acc_funcs = [
         get_grav_acc, get_stat_acc, get_mag_acc,
         get_coh_acc, get_ali_acc, get_sep_acc,
         get_fric_acc, get_col_acc
-    )
+    ]
 
     @classmethod
-    def draw_bodies(cls, screen, bodies):
+    def draw_bodies(cls, screen, bodies, fixed_to_screen=False, colour=None):
         for body in bodies:
-            body.draw(screen)
+            body.draw(screen, fixed_to_screen, colour)
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, self.colour[0], round(self.pos[0]), round(self.radius[0]))
-        if self.radius[0] >= 3:
-            pygame.draw.circle(screen, self.colour[1], round(self.pos[0]), round(self.radius[0] - 2))
+        if not fixed_to_screen:
+            for damage_marker in cls.damage_markers:
+                damage_marker[3] -= 1
+                if damage_marker[3] >= 0:
+                    surface = pygame.font.SysFont("Consolas", 15).render(str(damage_marker[0]), True, damage_marker[2])
+                    screen.blit(surface, round(damage_marker[1] - Body.cmp + Vector(*screen.get_size()) / 2))
+                else:
+                    cls.damage_markers.remove(damage_marker)
+
+    def draw(self, screen, fixed_to_screen=False, colour=None):
+        if self.pos is not None:
+            if colour is None:
+                colour = self.colour
+            if fixed_to_screen:
+                P = self.pos[0]
+            else:
+                P = self.pos[0] - Body.cmp
+            pygame.draw.circle(screen, colour[0], round(P + Vector(*screen.get_size()) / 2), round(self.radius[0]))
+            if self.radius[0] >= 3:
+                pygame.draw.circle(screen, colour[1], round(P + Vector(*screen.get_size()) / 2), round(self.radius[0] - 2))
 
     def draw_vector(self, screen, vector):
         pygame.draw.line(screen, self.colour[1], round(self.pos[0]), round(self.pos[0] + vector), 2)
