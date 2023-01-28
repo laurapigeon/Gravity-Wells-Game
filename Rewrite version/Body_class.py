@@ -21,14 +21,14 @@ class Body(object):
         health=None, damage=None
     ):
         """self.pos is a list of all derivatives of an object's position up to the constant term etc"""
-        self.prev_pos,         self.pos,         self.next_pos         = None, ipos,         None  # (x, dx,...)
-        self.prev_mass,        self.mass,        self.next_mass        = None, imass,        None  # (m, dm,...)
-        self.prev_charge,      self.charge,      self.next_charge      = None, icharge,      None  # (q, dq,...)
-        self.prev_radius,      self.radius,      self.next_radius      = None, iradius,      None  # (r, dr,...)
-        self.prev_cohesion,    self.cohesion,    self.next_cohesion    = None, icohesion,    None  # (coh, dcoh,...)
-        self.prev_alignment,   self.alignment,   self.next_alignment   = None, ialignment,   None  # (ali, dali,...)
-        self.prev_separation,  self.separation,  self.next_separation  = None, iseparation,  None  # (sep, dsep,...)
-        self.prev_view_radius, self.view_radius, self.next_view_radius = None, iview_radius, None  # (rad, drad,...)
+        self.pos,         self.next_pos         = ipos,         None  # (x, dx,...)
+        self.mass,        self.next_mass        = imass,        None  # (m, dm,...)
+        self.charge,      self.next_charge      = icharge,      None  # (q, dq,...)
+        self.radius,      self.next_radius      = iradius,      None  # (r, dr,...)
+        self.cohesion,    self.next_cohesion    = icohesion,    None  # (coh, dcoh,...)
+        self.alignment,   self.next_alignment   = ialignment,   None  # (ali, dali,...)
+        self.separation,  self.next_separation  = iseparation,  None  # (sep, dsep,...)
+        self.view_radius, self.next_view_radius = iview_radius, None  # (rad, drad,...)
         self.friction = friction  # linear friction
         self.elasticity = elasticity  # collision elasticity
         self.colour = colour  # (light, middle, dark)
@@ -133,13 +133,13 @@ class Body(object):
         """
         uses the calculated next attributes to shift to the next step
         """
-        self.prev_pos,        self.pos,        self.next_pos        = self.pos,        self.next_pos,        None
-        self.prev_mass,       self.mass,       self.next_mass       = self.mass,       self.next_mass,       None
-        self.prev_charge,     self.charge,     self.next_charge     = self.charge,     self.next_charge,     None
-        self.prev_radius,     self.radius,     self.next_radius     = self.radius,     self.next_radius,     None
-        self.prev_cohesion,   self.cohesion,   self.next_cohesion   = self.cohesion,   self.next_cohesion,   None
-        self.prev_alignment,  self.alignment,  self.next_alignment  = self.alignment,  self.next_alignment,  None
-        self.prev_separation, self.separation, self.next_separation = self.separation, self.next_separation, None
+        self.pos,        self.next_pos        = self.next_pos,        None
+        self.mass,       self.next_mass       = self.next_mass,       None
+        self.charge,     self.next_charge     = self.next_charge,     None
+        self.radius,     self.next_radius     = self.next_radius,     None
+        self.cohesion,   self.next_cohesion   = self.next_cohesion,   None
+        self.alignment,  self.next_alignment  = self.next_alignment,  None
+        self.separation, self.next_separation = self.next_separation, None
 
     def get_grav_acc(self, other_bodies):
         a = Vector(0, 0)

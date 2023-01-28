@@ -137,10 +137,11 @@ class Body:
         (255, 164, 164), (255, 164, 210), (255, 164, 255), (210, 164, 255)
     )
 
-    def __init__(self, m, v, P):
+    def __init__(self, m, v, P, i):
         self.m = m
         self.v, self.v2 = Vector(*v), None
         self.P, self.P2 = Vector(*P), None
+        self.i = i
 
         # RKN vars
         self.hk = [Vector(0, 0), Vector(0, 0), Vector(0, 0), Vector(0, 0)]
@@ -148,71 +149,82 @@ class Body:
         self.Pa = [Vector(0, 0), Vector(0, 0), Vector(0, 0), Vector(0, 0)]
 
     @classmethod
-    def RKN_update_bodies(cls, bodies, h):
+    def RKN_ralston2_update_bodies(cls, bodies, h):
         for body in bodies:
             body.va[0] = body.v
             body.Pa[0] = body.P
-            other_bodies = bodies[:]
-            other_bodies.remove(body)
-            body.hk[0] = h * body.Σa(other_bodies, 0)
+            body.hk[0] = h * body.Σa(bodies[:], 0)
+        for body in bodies:
+            body.va[1] = body.va[0] + 2 * body.hk[0] / 3
+            body.Pa[1] = body.Pa[0] + h * (2 * body.hk[0] / 3 + 4 * body.va[0] + 2 * body.va[1]) / 9
+            body.hk[1] = h * body.Σa(bodies[:], 1)
+            body.v2 = body.va[0] + (body.hk[0] + 3 * body.hk[1]) / 4
+            body.P2 = body.Pa[0] + (body.va[0] + 3 * body.va[1]) * h / 4
+
+    @classmethod
+    def RKN_3_8_update_bodies(cls, bodies, h):
+        for body in bodies:
+            body.va[0] = body.v
+            body.Pa[0] = body.P
+            body.hk[0] = h * body.Σa(bodies[:], 0)
         for body in bodies:
             body.va[1] = body.va[0] + body.hk[0] / 3
             body.Pa[1] = body.Pa[0] + h * (body.hk[0] / 3 + 4 * body.va[0] + 2 * body.va[1]) / 18
-            other_bodies = bodies[:]
-            other_bodies.remove(body)
-            body.hk[1] = h * body.Σa(other_bodies, 1)
+            body.hk[1] = h * body.Σa(bodies[:], 1)
         for body in bodies:
             body.va[2] = body.va[0] - body.hk[0] / 3 + body.hk[1]
             body.Pa[2] = body.Pa[0] + h * (2 * body.hk[0] / 3 + 4 * body.va[0] + 2 * body.va[2]) / 9
-            other_bodies = bodies[:]
-            other_bodies.remove(body)
-            body.hk[2] = h * body.Σa(other_bodies, 2)
+            body.hk[2] = h * body.Σa(bodies[:], 2)
         for body in bodies:
             body.va[3] = body.va[0] + body.hk[0] - body.hk[1] + body.hk[2]
             body.Pa[3] = body.Pa[0] + h * (body.hk[0] + 4 * body.va[0] + 2 * body.va[3]) / 6
-            other_bodies = bodies[:]
-            other_bodies.remove(body)
-            body.hk[3] = h * body.Σa(other_bodies, 3)
+            body.hk[3] = h * body.Σa(bodies[:], 3)
             body.v2 = body.va[0] + (body.hk[0] + 3 * body.hk[1] + 3 * body.hk[2] + body.hk[3]) / 8
             body.P2 = body.Pa[0] + (body.va[0] + 3 * body.va[1] + 3 * body.va[2] + body.va[3]) * h / 8
 
-    def Σa(self, other_bodies, index):
+    def Σa(self, bodies, index):
         a = Vector(0, 0)
-        for other_body in other_bodies:
-            P1, P2 = self.Pa[index], other_body.Pa[index]
+        for body in bodies:
+            P1, P2 = self.Pa[index], body.Pa[index]
             if P1 != P2:
-                a += (P2 - P1).normalize() * G * other_body.m * P1.distance_to(P2) ** -2
+                a += (P2 - P1).normalize() * G * body.m * P1.distance_to(P2) ** -2
         return a
 
     def step(self):
         self.P, self.P2 = self.P2, None
         self.v, self.v2 = self.v2, None
 
-    def draw(self):
+    def draw(self, colour):
         #colour = (255, 255, 255)
         #colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
-        pygame.draw.circle(screen, colour, round(self.P), 2)
+        #colour = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((frame / 256) % 1, 1, 1))
+        pygame.draw.circle(screen, colour, round(self.P), 1)
 
 
 pygame.init()
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
 
-G = 30000
-r = 1280 / 16
+G = 10000
+r = 1280 / 10
 P1 = Vector(1280 / 2 + r, 720 / 2)
 P2 = Vector(1280 / 2, 720 / 2)
+P3 = Vector(1280 / 2 - r, 720 / 2)
 m1 = 100
-m2 = 200
-v1 = math.sqrt(G * m2 * r) / r
-momentum = m1 * v1
-v1 -= 0.5 * momentum / m1
-v2 = -0.5 * momentum / m2
+m2 = 1000
+m3 = 300
+v1 = Vector(0, math.sqrt(G * m2 / r))
+v2 = Vector(0, 0)
+v3 = Vector(0, -math.sqrt(G * m2 / r))
+system_speed = (m1 * v1 + m2 * v2 + m3 * v3) / (m1 + m2 + m3)
+v1 -= system_speed
+v2 -= system_speed
+v3 -= system_speed
 
 bodies = list()
-bodies.append(Body(m1, (0, v1), P1))
-bodies.append(Body(m2, (0, v2), P2))
+bodies.append(Body(m1, v1, P1, 0))
+bodies.append(Body(m2, v2, P2, 1))
+bodies.append(Body(m3, v3, P3, 2))
 #bodies.append(Body(m1, (0, 0), (10 + 1280 / 2, -10 + 720 / 2)))
 #bodies.append(Body(m2, (0, 0), (-10 + 1280 / 2, 10 + 720 / 2)))
 
@@ -228,13 +240,16 @@ while not done:
         if event.type == pygame.VIDEORESIZE:
             screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
 
-    Body.RKN_update_bodies(bodies, 1 / 60)
-    for body in bodies:
-        body.step()
+    Body.RKN_ralston2_update_bodies(bodies, 1 / 60)
+    #Body.RKN_3_8_update_bodies(bodies, 1 / 60)
+    if frame <= 700:
+        for body in bodies:
+            body.step()
 
     #screen.fill((0, 0, 0))
     for body in bodies:
-        body.draw()
+        body.draw(((255, 164, 164), (164, 255, 164), (164, 164, 255))[body.i])
+        #body.draw(((164, 255, 255), (255, 164, 255), (255, 255, 164))[body.i])
     pygame.display.flip()
     #clock.tick(60)
     frame += 1

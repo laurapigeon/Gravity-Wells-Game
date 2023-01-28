@@ -156,7 +156,7 @@ while not done:
                     bodies.remove(body)
             if isinstance(body, Shot) and body.duration is not None and body.duration <= 0:
                 bodies.remove(body)
-            body.step_next()
+            # body.step_next()
 
     Body.draw_bodies(screen, bodies)
 
