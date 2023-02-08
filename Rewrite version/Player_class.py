@@ -124,6 +124,8 @@ class Player(Body):
         for other in other_bodies:
             if not isinstance(other, Player) and not isinstance(other, Shot):
                 min_distance = min(min_distance, (self.pos[0] - other.pos[0]).norm)
+        if min_distance == float("inf"):
+            min_distance = 100
         a = -self.pos[1] * self.friction * min_distance
         return a
 
@@ -140,7 +142,7 @@ class Player(Body):
         return a
 
     acc_funcs = [
-        Body.get_grav_acc, Body.get_stat_acc, Body.get_mag_acc,
+        Body.get_grav_acc, Body.get_stat_acc, #Body.get_mag_acc,
         Body.get_coh_acc,  Body.get_ali_acc,  Body.get_sep_acc,
         get_fric_acc, Body.get_col_acc,  get_ctrl_acc
     ]

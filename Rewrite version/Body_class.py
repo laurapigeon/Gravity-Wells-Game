@@ -63,12 +63,6 @@ class Body(object):
         for body in bodies:
             body.step_next()
 
-    """
-    y -> dy -> y + dy = y2 -> dy2 -> (dy + dy2) / 2 = better dy -> y + dy = better y2 (VALID)
-    y -> dy -> y + dy = y2 -> dy2 -> y2 + dy2 = y3 -> (y2 + y3) / 2 = better y2 (NOT VALID)
-    (y3 - y) / 2 = better dy -> y + dy = better y2 = (y + y3) / 2
-    """
-
     def update(self, screen, dt, bodies, presses):
         other_bodies = copy.copy(bodies)
         other_bodies.remove(self)
@@ -85,9 +79,9 @@ class Body(object):
             else:
                 dxi = Vector(0, 0)
             if i == 1:  # change in velocity
-                for acc_func in self.acc_funcs:
-                    # self.draw_vector(screen, acc_func(self, other_bodies))
+                for j, acc_func in enumerate(self.acc_funcs):
                     a = acc_func(self, other_bodies)
+                    #self.draw_vector(screen, a)
                     dxi += a * dt
             self.next_pos.append(self.pos[i] + dxi)
         if len(self.pos) > 2:
@@ -282,4 +276,6 @@ class Body(object):
                 pygame.draw.circle(screen, colour[1], round(P + Vector(*screen.get_size()) / 2), round(self.radius[0] - 2))
 
     def draw_vector(self, screen, vector):
-        pygame.draw.line(screen, self.colour[1], round(self.pos[0]), round(self.pos[0] + vector), 2)
+        if self.pos is not None:
+            P = self.pos[0] - Body.cmp
+            pygame.draw.line(screen, self.colour[1], round(P + Vector(*screen.get_size()) / 2), round(P + vector + Vector(*screen.get_size()) / 2), 2)

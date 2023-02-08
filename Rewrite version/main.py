@@ -43,13 +43,13 @@ def load_sim():
     pos3 = Vector(screen_size[0] / 2 - 200, -screen_size[1] / 2 + 200)
     pos4 = Vector(-screen_size[0] / 2 + 200, screen_size[1] / 2 - 200)
 
-    player1 = Player(ipos=[pos1, Vector(0, 0)], imass=[1], iradius=[10], irot=[0, 0], friction=1 / 500,
+    player1 = Player(ipos=[pos1, Vector(0, 0)], imass=[1], icharge=[0.1], iradius=[10], irot=[0, 0], friction=1 / 500,
                      rotfriction=5, controls=controls1, colour=colours[0], shot_type=0, health=100, damage=50, stocks=2)
-    player2 = Player(ipos=[pos2, Vector(0, 0)], imass=[1], iradius=[10], irot=[c.PI, 0], friction=1 / 500,
+    player2 = Player(ipos=[pos2, Vector(0, 0)], imass=[1], icharge=[0.1], iradius=[10], irot=[c.PI, 0], friction=1 / 500,
                      rotfriction=5, controls=controls2, colour=colours[1], shot_type=1, health=100, damage=50, stocks=2)
-    player3 = Player(ipos=[pos3, Vector(0, 0)], imass=[1], iradius=[10], irot=[c.PI, 0], friction=1 / 500,
+    player3 = Player(ipos=[pos3, Vector(0, 0)], imass=[1], icharge=[0.1], iradius=[10], irot=[c.PI, 0], friction=1 / 500,
                      rotfriction=5, controls=controls3, colour=colours[2], shot_type=1, health=100, damage=50, stocks=2)
-    player4 = Player(ipos=[pos4, Vector(0, 0)], imass=[1], iradius=[10], irot=[0, 0], friction=1 / 500,
+    player4 = Player(ipos=[pos4, Vector(0, 0)], imass=[1], icharge=[0.1], iradius=[10], irot=[0, 0], friction=1 / 500,
                      rotfriction=5, controls=controls4, colour=colours[3], shot_type=1, health=100, damage=50, stocks=2)
 
     players = list()
